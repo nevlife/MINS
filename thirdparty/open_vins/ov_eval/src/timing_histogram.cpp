@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   if (argc < 3) {
     PRINT_ERROR(RED "ERROR: Please specify a timing file\n" RESET);
     PRINT_ERROR(RED "ERROR: ./timing_histagram <file_times.txt> <num_bins>\n" RESET);
-    PRINT_ERROR(RED "ERROR: rosrun ov_eval timing_flamegraph <file_times.txt> <num_bins>\n" RESET);
+    PRINT_ERROR(RED "ERROR: ros2 run ov_eval timing_flamegraph <file_times.txt> <num_bins>\n" RESET);
     std::exit(EXIT_FAILURE);
   }
   int nbins = atoi(argv[2]);

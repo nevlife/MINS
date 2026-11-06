@@ -2,29 +2,6 @@ cmake_minimum_required(VERSION 3.5.1)
 
 find_package(ament_cmake REQUIRED)
 
-# ament_target_dependencies() was dropped from ament_cmake_target_dependencies on newer
-# distros (e.g. ROS2 Lyrical) in favor of modern CMake imported targets. Shim it back in
-# when missing, falling back to classic ${dep}_INCLUDE_DIRS/_LIBRARIES if no modern target.
-if(NOT COMMAND ament_target_dependencies)
-  macro(ament_target_dependencies target)
-    foreach(_dep ${ARGN})
-      if(TARGET ${_dep}::${_dep})
-        target_link_libraries(${target} ${_dep}::${_dep})
-      else()
-        if(${_dep}_INCLUDE_DIRS)
-          target_include_directories(${target} PUBLIC ${${_dep}_INCLUDE_DIRS})
-        endif()
-        if(${_dep}_LIBRARIES)
-          target_link_libraries(${target} ${${_dep}_LIBRARIES})
-        endif()
-        if(${_dep}_DEFINITIONS)
-          target_compile_definitions(${target} PUBLIC ${${_dep}_DEFINITIONS})
-        endif()
-      endif()
-    endforeach()
-  endmacro()
-endif()
-
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -35,9 +12,8 @@ find_package(ov_core REQUIRED)   # Might not be available as a ROS 2 package
 find_package(ov_eval REQUIRED)   # Might not be available as a ROS 2 package
 find_package(mins REQUIRED)
 
-add_definitions(-DROS_AVAILABLE=2)
 # Describe ROS project
-ament_export_dependencies(roscpp rospy geometry_msgs nav_msgs sensor_msgs ov_core ov_eval mins)
+ament_export_dependencies(rclcpp geometry_msgs nav_msgs sensor_msgs ov_core ov_eval mins)
 ament_export_libraries(mins_eval_lib)
 
 list(APPEND ament_libraries

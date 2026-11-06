@@ -10,11 +10,7 @@
 #include "functions/ErrorPlot.h"
 #include "utils/fs_compat.h"
 
-#if ROS_AVAILABLE == 2
 #include "rclcpp/rclcpp.hpp"
-#else
-#include "ros/ros.h"
-#endif
 #include "utils/colors.h"
 #include "utils/print.h"
 
@@ -41,7 +37,6 @@ int main(int argc, char **argv) {
   }
 
   // overwrite options if ROS params exist
-#if ROS_AVAILABLE == 2
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
 
@@ -49,13 +44,6 @@ int main(int argc, char **argv) {
   node->get_parameter<std::string>("/plot_consistency/load_path", load_path);
   node->get_parameter<std::string>("/plot_consistency/save_path", save_path);
   node->get_parameter<bool>("/plot_consistency/visualize", visualize);
-#else
-  ros::init(argc, argv, "plot_consistency");
-  ros::NodeHandle nh;
-  ros::param::get("/plot_consistency/load_path", load_path);
-  ros::param::get("/plot_consistency/save_path", save_path);
-  ros::param::get("/plot_consistency/visualize", visualize);
-#endif
   // Create save directory
   save_path += "/Plot/";
   if (argc > 2)

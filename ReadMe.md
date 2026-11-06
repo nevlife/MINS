@@ -1,14 +1,5 @@
 # MINS
-[![ROS1 Melodic (Ubuntu 18.04)](https://github.com/rpng/MINS/actions/workflows/build_ros1_melodic.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_ros1_melodic.yml)
-[![ROS1 Noetic (Ubuntu 20.04)](https://github.com/rpng/MINS/actions/workflows/build_ros1_noetic.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_ros1_noetic.yml)
-[![ROS2 Humble (Ubuntu 22.04)](https://github.com/rpng/MINS/actions/workflows/build_ros2.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_ros2.yml)
 [![ROS2 Jazzy (Ubuntu 24.04)](https://github.com/rpng/MINS/actions/workflows/build_ros2_jazzy.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_ros2_jazzy.yml)
-[![ROS2 Lyrical (Ubuntu 26.04)](https://github.com/rpng/MINS/actions/workflows/build_ros2_lyrical.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_ros2_lyrical.yml)
-[![ROS-free (Ubuntu 22.04)](https://github.com/rpng/MINS/actions/workflows/build_rosfree.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_rosfree.yml)
-[![ROS-free (Ubuntu 24.04)](https://github.com/rpng/MINS/actions/workflows/build_rosfree_24_04.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_rosfree_24_04.yml)
-[![ROS-free (Ubuntu 26.04)](https://github.com/rpng/MINS/actions/workflows/build_rosfree_26_04.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_rosfree_26_04.yml)
-[![macOS (arm64)](https://github.com/rpng/MINS/actions/workflows/build_macos.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_macos.yml)
-[![Windows (x64)](https://github.com/rpng/MINS/actions/workflows/build_windows.yml/badge.svg)](https://github.com/rpng/MINS/actions/workflows/build_windows.yml)
 
 An efficient, robust, and tightly-coupled **Multisensor-aided Inertial Navigation System (MINS)** which is capable of 
 flexibly fusing all five sensing modalities (**IMU**, **wheel** **encoders**, **camera**, **GNSS**, and **LiDAR**) in a filtering 
@@ -35,69 +26,43 @@ Exemplary use case of MINS:
 * Very detailed [options](https://github.com/rpng/mins/tree/master/mins/src/options) for each sensor enabling general multi-sensor application.
 
 ## Dependency
-MINS is tested on Ubuntu 18 and 20 and only requires corresponding ROS ([Melodic](https://wiki.ros.org/melodic) and [Noetic](https://wiki.ros.org/noetic)).
-
-## ROS2
-
-For instructions and dependencies for building the package on ros2 you can look into the Dockerfile. After building and sourcing, you should be able to start the simulation with 
-
-```sh
-ros2 run mins simulation mins/config/simulation/config.yaml
-```
-
-You can then start rviz2 to look at the path as estimated through MINS.
-
-For running in real mode you can use:
-
-```sh
-ros2 run mins subscribe mins/config/euroc_mav/config.yaml
-```
-
-And then play a bag in another terminal, for example from the [euroc_mav](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets), after converting it using [rosbags](https://pypi.org/project/rosbags/):
-
-```sh
-ros2 bag play data/MH_01_easy
-```
-
-Again, you can look at the paths and the pose estimated by MINS with rviz2.
-
+This branch builds only on ROS 2 Jazzy (Ubuntu 24.04). `Dockerfile_jazzy_24_04` lists the dependencies.
+`subscribe` also needs flux (`flux_cpp`, `flux_std_adapters`) and capa (`capa_ros`).
 
 ## Build and Source
-```
-mkdir -p $MINS_WORKSPACE/catkin_ws/src/ && cd $MINS_WORKSPACE/catkin_ws/src/
-git clone https://github.com/rpng/MINS
-cd .. && catkin build
-source devel/setup.bash
+```sh
+cd <colcon workspace>/src && git clone -b jazzy <this repository> MINS
+cd .. && colcon build --symlink-install --packages-up-to mins mins_eval
+source install/setup.bash
 ```
 
 ## Run Examples
-### Simulation 
-```roslaunch mins simulation.launch cam_enabled:=true lidar_enabled:=true```
+### Simulation
+```sh
+ros2 launch mins simulation.launch.py
+```
 
 ![alt text](thirdparty/simulation.png)
 
-
 ### Real-World Dataset
-#### Directly reading the ros bag file
-```roslaunch mins rosbag.launch config:=kaist/kaist_LC path_gt:=urban30.txt path_bag:=urban30.bag```
+```sh
+ros2 launch mins mins.launch.py config:=euroc_mav
+ros2 bag play data/MH_01_easy
+```
 
-![alt text](thirdparty/real_bag.png)
+Convert ROS 1 bags such as [euroc_mav](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) with [rosbags](https://pypi.org/project/rosbags/) first.
+`transport:=flux` takes the monocular raw image from flux instead of DDS.
+The node runs on a flux executor with one thread, and when `CAPA_SPEC` names a chain file, capa schedules that thread by the stage of node `/mins`.
 
-Here are the rosbag files and ground truths we used in the evaluation. To be specific, we used [kaist2bag](https://github.com/tsyxyz/kaist2bag) to convert all sensor readings to rosbag files. All rights reserved to [KAIST urban dataset](https://sites.google.com/view/complex-urban-dataset).
+![alt text](thirdparty/real_sub.png)
 
-We provide mirrors of the converted rosbags (`urban18`-`urban39`) and their ground truths at the links below:
+The rosbag files and ground truths used in the evaluation were converted from the [KAIST urban dataset](https://sites.google.com/view/complex-urban-dataset) with [kaist2bag](https://github.com/tsyxyz/kaist2bag). All rights reserved to the KAIST urban dataset.
+
+Mirrors of the converted rosbags (`urban18`-`urban39`) and their ground truths:
 * [Hugging Face - kaist-urban-dataset](https://huggingface.co/datasets/gladiator7737/kaist-urban-dataset)
 * [UD Robots NAS](https://gofile.me/7B392/kNl7XHqHx) (scan the QR code below)
 
 ![KAIST dataset QR code](thirdparty/kaist-QRcode.png)
-
-#### Subscribing to the ros messages
-```roslaunch mins subscribe.launch config:=euroc_mav rosbag:=V1_03_difficult.bag bag_start_time:=0```
-
-![alt text](thirdparty/real_sub.png)
-
-### RViz
-```rviz -d mins/launch/display.rviz```
 
 ## Acknowledgements
 This project was built on top of the following libraries which are in the thirdparty folder.

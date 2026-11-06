@@ -11,7 +11,7 @@
  * Minimal in-house replacement for the small slice of PCL that MINS used:
  * two point types, a vector-backed cloud, a rigid transform, and a centroid
  * voxel-grid downsample. This drops PCL (and its boost/flann/vtk transitive
- * weight) from every build - ROS1, ROS2, and the ROS-free CLI.
+ * weight) from the build.
  */
 #ifndef MINS_LIDAR_POINTCLOUD_H
 #define MINS_LIDAR_POINTCLOUD_H

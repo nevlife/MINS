@@ -77,7 +77,7 @@ ErrorPlot::ErrorPlot(string load_path, string save_path) : save_path(save_path) 
     strcpy(char_array, load_path.c_str());
     // Ensure we have a path
     printf(RED "[LOAD]: The folder %s has no files\n" RESET, char_array);
-    printf(RED "[LOAD]: rosrun mins_eval plot_consistency <load directory> <save directory=load directory> <visualize=true>\n" RESET);
+    printf(RED "[LOAD]: ros2 run mins_eval plot_consistency <load directory> <save directory=load directory> <visualize=true>\n" RESET);
     exit(EXIT_FAILURE);
   }
 

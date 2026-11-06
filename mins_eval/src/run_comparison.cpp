@@ -8,11 +8,7 @@
  */
 
 #include "functions/ResultTrajectory.h"
-#if ROS_AVAILABLE == 2
 #include "rclcpp/rclcpp.hpp"
-#else
-#include "ros/ros.h"
-#endif
 #include "utils/Loader.h"
 #include "utils/fs_compat.h"
 #include <Eigen/Eigen>
@@ -103,11 +99,7 @@ int main(int argc, char **argv) {
 
   // Loop through each algorithm type
   for (auto &path_al : path_als) {
-#if ROS_AVAILABLE == 2
     if (!rclcpp::ok())
-#else
-    if (!ros::ok())
-#endif
       break;
 
     // Debug print
@@ -204,7 +196,6 @@ void basic_setup(int argc, char **argv) {
   folder_groundtruths = argc > 2 ? argv[2] : "";
   folder_algorithms = argc > 3 ? argv[3] : "";
 
-#if ROS_AVAILABLE == 2
   // overwrite options if ROS params exist
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
@@ -217,13 +208,6 @@ void basic_setup(int argc, char **argv) {
   node->get_parameter<std::string>("path_gts", folder_groundtruths);
   node->get_parameter<std::string>("path_alg", folder_algorithms);
   node->get_parameter<int>("viz_type", viz_type);
-#else
-  ros::init(argc, argv, "run_comparison");
-  ros::param::get("/run_comparison/align_mode", align_mode);
-  ros::param::get("/run_comparison/path_gts", folder_groundtruths);
-  ros::param::get("/run_comparison/path_alg", folder_algorithms);
-  ros::param::get("/run_comparison/viz_type", viz_type);
-#endif
 }
 
 /// Get paths of the ground truths

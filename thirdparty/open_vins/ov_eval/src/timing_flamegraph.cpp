@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   if (argc < 2) {
     PRINT_ERROR(RED "ERROR: Please specify a timing file\n" RESET);
     PRINT_ERROR(RED "ERROR: ./timing_flamegraph <file_times.txt> <subsample>\n" RESET);
-    PRINT_ERROR(RED "ERROR: rosrun ov_eval timing_flamegraph <file_times.txt> <subsample>\n" RESET);
+    PRINT_ERROR(RED "ERROR: ros2 run ov_eval timing_flamegraph <file_times.txt> <subsample>\n" RESET);
     std::exit(EXIT_FAILURE);
   }
   int keep_every = 10;

@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
   if (argc < 3) {
     PRINT_ERROR(RED "ERROR: Please specify a align mode and trajectory file\n" RESET);
     PRINT_ERROR(RED "ERROR: ./plot_trajectories <align_mode> <file_gt.txt> <file_est1.txt> ...  <file_est9.txt>\n" RESET);
-    PRINT_ERROR(RED "ERROR: rosrun ov_eval plot_trajectories <align_mode> <file_gt.txt> <file_est1.txt> ...  <file_est9.txt>\n" RESET);
+    PRINT_ERROR(RED "ERROR: ros2 run ov_eval plot_trajectories <align_mode> <file_gt.txt> <file_est1.txt> ...  <file_est9.txt>\n" RESET);
     std::exit(EXIT_FAILURE);
   }
 

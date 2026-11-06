@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
   if (argc < 4) {
     PRINT_ERROR(RED "ERROR: Please specify a align mode, folder, and algorithms\n" RESET);
     PRINT_ERROR(RED "ERROR: ./error_dataset <align_mode> <file_gt.txt> <folder_algorithms>\n" RESET);
-    PRINT_ERROR(RED "ERROR: rosrun ov_eval error_dataset <align_mode> <file_gt.txt> <folder_algorithms>\n" RESET);
+    PRINT_ERROR(RED "ERROR: ros2 run ov_eval error_dataset <align_mode> <file_gt.txt> <folder_algorithms>\n" RESET);
     std::exit(EXIT_FAILURE);
   }
 

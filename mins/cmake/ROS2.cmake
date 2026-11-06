@@ -2,29 +2,6 @@ cmake_minimum_required(VERSION 3.5.1)
 
 find_package(ament_cmake REQUIRED)
 
-# ament_target_dependencies() was dropped from ament_cmake_target_dependencies on newer
-# distros (e.g. ROS2 Lyrical) in favor of modern CMake imported targets. Shim it back in
-# when missing, falling back to classic ${dep}_INCLUDE_DIRS/_LIBRARIES if no modern target.
-if(NOT COMMAND ament_target_dependencies)
-  macro(ament_target_dependencies target)
-    foreach(_dep ${ARGN})
-      if(TARGET ${_dep}::${_dep})
-        target_link_libraries(${target} ${_dep}::${_dep})
-      else()
-        if(${_dep}_INCLUDE_DIRS)
-          target_include_directories(${target} PUBLIC ${${_dep}_INCLUDE_DIRS})
-        endif()
-        if(${_dep}_LIBRARIES)
-          target_link_libraries(${target} ${${_dep}_LIBRARIES})
-        endif()
-        if(${_dep}_DEFINITIONS)
-          target_compile_definitions(${target} PUBLIC ${${_dep}_DEFINITIONS})
-        endif()
-      endif()
-    endforeach()
-  endmacro()
-endif()
-
 find_package(rclcpp REQUIRED)
 find_package(rosbag2 REQUIRED COMPONENTS rmw_adapters message_filters rosbag2_storage_builtin)
 find_package(tf2_ros REQUIRED COMPONENTS tf2_cpp)  # Replaces tf
@@ -44,9 +21,11 @@ find_package(ament_index_cpp REQUIRED)  # get_package_share_directory()
 
 # Other dependencies (if available through ROS 2 packages)
 find_package(ov_core REQUIRED)   # Might not be available as a ROS 2 package
+find_package(capa_ros REQUIRED)
+find_package(flux_cpp REQUIRED)
+find_package(flux_std_adapters REQUIRED)
 
-add_definitions(-DROS_AVAILABLE=2)
-ament_export_dependencies(rclcpp rosbag2 tf2_ros std_msgs geometry_msgs sensor_msgs nav_msgs std_srvs image_geometry visualization_msgs image_transport cv_bridge ament_index_cpp ov_core)
+ament_export_dependencies(rclcpp rosbag2 tf2_ros std_msgs geometry_msgs sensor_msgs nav_msgs std_srvs image_geometry visualization_msgs image_transport cv_bridge ament_index_cpp ov_core flux_cpp flux_std_adapters)
 # ament_export_include_directories(src/)
 ament_export_libraries(mins_lib)
 
@@ -77,7 +56,6 @@ include_directories(
 # Set link libraries used by all binaries
 list(APPEND thirdparty_libraries
         ${OpenCV_LIBRARIES}
-        ${BAG_IO_LIBRARIES}
         )
 
 ##################################################
@@ -105,8 +83,6 @@ list(APPEND LIBRARY_SOURCES
         src/utils/PackagePath.cpp
         src/utils/Print_Logger.cpp
         src/utils/Jabdongsani.cpp
-        src/io/RosbagReader.cpp
-        src/io/RosMsgs.cpp
         src/state/State.cpp
         src/state/StateHelper.cpp
         src/state/Propagator.cpp
@@ -131,7 +107,8 @@ list(APPEND LIBRARY_SOURCES
 file(GLOB_RECURSE LIBRARY_HEADERS "src/*.h")
 add_library(mins_lib SHARED ${LIBRARY_SOURCES} ${LIBRARY_HEADERS})
 ament_target_dependencies(mins_lib ${ament_libraries})
-target_link_libraries(mins_lib ${thirdparty_libraries} ${rclcpp_LIBRARIES})
+target_link_libraries(mins_lib ${thirdparty_libraries} ${rclcpp_LIBRARIES} flux_cpp::flux_cpp)
+target_include_directories(mins_lib PUBLIC ${flux_std_adapters_INCLUDE_DIRS})
 
 # target_include_directories(mins_lib PUBLIC src/)
 
@@ -161,14 +138,10 @@ add_executable(simulation src/run_simulation.cpp)
 target_link_libraries(simulation mins_lib)
 
 add_executable(subscribe src/run_subscribe.cpp)
-target_link_libraries(subscribe mins_lib)
-
-# Plays a ROS1 bag through the estimator without ROS (src/io reads the bag)
-add_executable(mins_bag src/run_bag_cli.cpp)
-target_link_libraries(mins_bag mins_lib)
+target_link_libraries(subscribe mins_lib capa_ros::capa_ros)
 
 # Install executables
-install(TARGETS subscribe simulation mins_bag DESTINATION lib/${PROJECT_NAME})
+install(TARGETS subscribe simulation DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
 install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config/)

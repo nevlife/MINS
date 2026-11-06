@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   if (argc < 2) {
     PRINT_ERROR(RED "ERROR: Please specify a timing and memory percent folder\n" RESET);
     PRINT_ERROR(RED "ERROR: ./timing_percentages <timings_folder>\n" RESET);
-    PRINT_ERROR(RED "ERROR: rosrun ov_eval timing_percentages <timings_folder>\n" RESET);
+    PRINT_ERROR(RED "ERROR: ros2 run ov_eval timing_percentages <timings_folder>\n" RESET);
     std::exit(EXIT_FAILURE);
   }
 

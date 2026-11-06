@@ -7,16 +7,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#include <cstdio>
 #include <memory>
 
-#if ROS_AVAILABLE == 2
 #include "core/ROS2Publisher.h"
+#include "capa/flux.hpp"
 #include "core/ROS2Subscriber.h"
+#include "flux/partitioned_executor.hpp"
 #include "rclcpp/rclcpp.hpp"
-#elif ROS_AVAILABLE == 1
-#include "core/ROSPublisher.h"
-#include "core/ROSSubscriber.h"
-#endif
 #include "core/SystemManager.h"
 #include "options/Options.h"
 #include "options/OptionsSystem.h"
@@ -37,7 +35,6 @@ int main(int argc, char **argv) {
   argc > 1 ? config_path = argv[1] : string();
 
   // Launch our ros node
-#if ROS_AVAILABLE == 2
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions options;
 
@@ -45,23 +42,20 @@ int main(int argc, char **argv) {
   options.automatically_declare_parameters_from_overrides(true);
   auto node = std::make_shared<rclcpp::Node>("mins_subscribe", options);
   node->get_parameter<std::string>("config_path", config_path);
-#endif
+  string transport = "dds";
+  node->get_parameter<std::string>("transport", transport);
   std::cout << "Loading config from path: " << config_path << std::endl;
   // Load the config
   auto parser = make_shared<ov_core::YamlParser>(config_path);
-#if ROS_AVAILABLE == 2
   parser->set_node(node);
-#endif
   shared_ptr<Options> op = make_shared<Options>();
   op->load_print(parser);
   shared_ptr<State_Logger> save = make_shared<State_Logger>(op);
 
   // Create our system
   shared_ptr<SystemManager> sys = make_shared<SystemManager>(op->est);
-#if ROS_AVAILABLE == 2
   shared_ptr<ROS2Publisher> pub = make_shared<ROS2Publisher>(node, sys, op);
-  shared_ptr<ROS2Subscriber> sub = make_shared<ROS2Subscriber>(node, sys, pub);
-#endif
+  shared_ptr<ROS2Subscriber> sub = make_shared<ROS2Subscriber>(node, sys, pub, transport);
 
   // Ensure we read in all parameters required
   if (!parser->successful()) {
@@ -69,22 +63,23 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
-#if ROS_AVAILABLE == 2
-  // rclcpp::spin(node);
-  rclcpp::executors::MultiThreadedExecutor executor;
+  // Every callback shares the estimator state, so the node keeps its one default group and one thread.
+  // The flux executor also delivers flux subscriptions and lets capa schedule that thread.
+  flux::PartitionedExecutor executor;
   executor.add_node(node);
+  if (const auto bound = capa::flux::bind(executor, *node, nullptr, ""); !bound) {
+    fprintf(stderr, "mins: %s\n", bound.error().what.c_str());
+    rclcpp::shutdown();
+    return EXIT_FAILURE;
+  }
   executor.spin();
-  // Spin off to ROS
-#endif
 
   // Final visualization
   sys->visualize_final();
   op->sys->save_timing ? save->save_timing_to_file(sys->tc_sensors->get_total_sum()) : void();
   save->check_files();
 
-#if ROS_AVAILABLE == 2
   rclcpp::shutdown();
-#endif
   // Done!
   return EXIT_SUCCESS;
 }

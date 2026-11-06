@@ -26,7 +26,11 @@ using namespace std;
 using namespace Eigen;
 using namespace mins;
 
-ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_ptr<SystemManager> sys, std::shared_ptr<ROS2Publisher> pub) : node(node), sys(sys), pub(pub) {
+ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_ptr<SystemManager> sys, std::shared_ptr<ROS2Publisher> pub,
+                               const std::string &transport)
+    : node(node), sys(sys), pub(pub) {
+  if (transport != "dds" && transport != "flux")
+    throw std::invalid_argument("transport must be dds or flux, got " + transport);
   // Copy option for easier access
   op = sys->state->op;
 
@@ -40,6 +44,8 @@ ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_p
   if (op->cam->enabled) {
     for (int i = 0; i < op->cam->max_n; i++) {
       // Check if this is stereo
+      if (transport == "flux" && (op->cam->stereo_pairs.count(i) > 0 || op->cam->compressed.at(i)))
+        throw std::invalid_argument("flux transport takes monocular raw images only");
       if (op->cam->stereo_pairs.find(i) != op->cam->stereo_pairs.end()) {
         if (i < op->cam->stereo_pairs.at(i)) {
           // Logic for sync stereo subscriber
@@ -74,7 +80,13 @@ ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_p
         }
       } else {
         // create MONO subscriber
-        if (op->cam->compressed.at(i)) {
+        if (transport == "flux") {
+          auto image_sub = make_shared<flux::Subscription>(*node, op->cam->topic.at(i), sensor_msgs::flux_msg::Image::kFingerprint, flux::QoS{},
+                                                           [this, i](const flux::FrameView &frame) { callback_monocular_F(sensor_msgs::flux_msg::Image::View{frame}, i); });
+          image_sub->add_to_callback_group(*node);
+          flux_subs.push_back(image_sub);
+          PRINT2("subscribing to cam (mono, flux): %s\n", op->cam->topic.at(i).c_str());
+        } else if (op->cam->compressed.at(i)) {
           auto image_sub = make_mf_subscriber<CompressedImage>(node, op->cam->topic.at(i));
           image_sub->registerCallback(std::bind(&ROS2Subscriber::callback_monocular_C, this, std::placeholders::_1, i));
           cimage_subs.push_back(image_sub);
@@ -140,6 +152,15 @@ void ROS2Subscriber::callback_monocular_C(const CompressedImage::ConstSharedPtr 
   // convert into correct format & send it to our system
   ov_core::CameraData cam;
   if (ROS2Helper::Image2Data(msg, cam_id, cam, op->cam)) {
+    sys->feed_measurement_camera(cam);
+    pub->publish_cam_images(cam_id);
+    PRINT1(YELLOW "[SUB] MONO Cam measurement: %.3f|%d\n" RESET, cam.timestamp, cam_id);
+  }
+}
+
+void ROS2Subscriber::callback_monocular_F(const sensor_msgs::flux_msg::Image::View &img, int cam_id) {
+  ov_core::CameraData cam;
+  if (ROS2Helper::Image2Data(img, cam_id, cam, op->cam)) {
     sys->feed_measurement_camera(cam);
     pub->publish_cam_images(cam_id);
     PRINT1(YELLOW "[SUB] MONO Cam measurement: %.3f|%d\n" RESET, cam.timestamp, cam_id);

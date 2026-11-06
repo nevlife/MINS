@@ -40,7 +40,7 @@ which all of them has 3-tuple of files (`*_gt.txt`, `*_est.txt`, `*_std.txt`).
 ### Run (example)
 The examplary run command:
 ```angular2html
-roslaunch mins_eval plot_consistency.launch load_path:="../outputs" save_path:="../outputs" visualize:="true"
+ros2 run mins_eval plot_consistency ../outputs ../outputs true
 ```
 The figures you can expect depends on the estimated state:
 * IMU state consistnecy (default)
@@ -135,7 +135,7 @@ This function provides comprehensive ATE, RPE, NEES, and timing comparison analy
 ### Run (example)
 The exemplary run command:
 ```angular2html
-roslaunch mins_eval comparison.launch align_mode:=se3 path_alg:=outputs/ path_gts:=mins_data/GroundTruths/holonomic viz_type:=4
+ros2 run mins_eval run_comparison --ros-args -p align_mode:=se3 -p path_alg:=outputs/ -p path_gts:=mins_data/GroundTruths/holonomic -p viz_type:=4
 ```
 <table>
  <tr><th><sub></sub></th>

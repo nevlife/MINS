@@ -1,0 +1,11 @@
+%YAML:1.0 # need to specify the file type at the top!
+
+# VectorNav VN-100 on the robot. White noise is the high-frequency std while driving (0.66-0.94 m/s^2,
+# 0.014-0.045 rad/s at 100 Hz) as a density; the static datasheet values are ten times smaller.
+# Bias diffusion is the KAIST car value, not measured.
+imu:
+  accel_noise: 1.0e-01 # [ m / s^2 / sqrt(Hz) ]
+  accel_bias: 1.0e-02 # [ m / s^3 / sqrt(Hz) ]
+  gyro_noise: 3.0e-03 # [ rad / s / sqrt(Hz) ]
+  gyro_bias: 1.0e-04 # [ rad / s^2 / sqrt(Hz) ]
+  topic: "/vectornav/imu"

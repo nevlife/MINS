@@ -28,6 +28,7 @@ template <class PointT> struct PointCloud;
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/flux/image.hpp>
 
 using namespace std;
 using namespace sensor_msgs;
@@ -71,6 +72,9 @@ public:
   static bool Image2Data(const sensor_msgs::msg::Image::ConstSharedPtr msg, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op);
 
   static bool Image2Data(const sensor_msgs::msg::CompressedImage::ConstSharedPtr msg, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op);
+
+  /// Reads the flux slot in place: the grayscale conversion is the only copy (mono8, rgb8, bgr8)
+  static bool Image2Data(const sensor_msgs::flux_msg::Image::View &img, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op);
 
   static WheelData JointState2Data(const sensor_msgs::msg::JointState::SharedPtr msg);
 

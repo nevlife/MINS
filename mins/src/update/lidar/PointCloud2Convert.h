@@ -9,8 +9,7 @@
 
 /*
  * Direct conversion between our mins::PointCloud and sensor_msgs PointCloud2, with no PCL
- * in between (saves a full cloud copy per lidar frame). The ROS1 and ROS2 PointCloud2 /
- * PointField messages are field-for-field identical, so one set of templates serves both.
+ * in between (saves a full cloud copy per lidar frame).
  */
 #ifndef MINS_LIDAR_POINTCLOUD2CONVERT_H
 #define MINS_LIDAR_POINTCLOUD2CONVERT_H
@@ -23,7 +22,7 @@
 
 namespace mins {
 
-// PointField.datatype for float32 (same value in ROS1 and ROS2).
+// PointField.datatype for float32.
 static constexpr std::uint8_t PC2_FLOAT32 = 7;
 
 // sensor_msgs PointCloud2 -> XYZ cloud. Reads x/y/z by field offset, so any point layout

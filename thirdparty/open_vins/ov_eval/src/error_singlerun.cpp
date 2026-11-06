@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   if (argc < 4) {
     PRINT_ERROR(RED "ERROR: Please specify a align mode, groudtruth, and algorithm run file\n" RESET);
     PRINT_ERROR(RED "ERROR: ./error_singlerun <align_mode> <file_gt.txt> <file_est.txt>\n" RESET);
-    PRINT_ERROR(RED "ERROR: rosrun ov_eval error_singlerun <align_mode> <file_gt.txt> <file_est.txt>\n" RESET);
+    PRINT_ERROR(RED "ERROR: ros2 run ov_eval error_singlerun <align_mode> <file_gt.txt> <file_est.txt>\n" RESET);
     std::exit(EXIT_FAILURE);
   }
 

@@ -14,7 +14,7 @@
 
 namespace mins {
 // Resolve an installed package's directory. Defined at the ROS boundary
-// (PackagePath.cpp) so the shared core stays free of ros::package / ament.
+// (PackagePath.cpp) so the shared core stays free of ament.
 std::string get_package_path(const std::string &pkg);
 } // namespace mins
 

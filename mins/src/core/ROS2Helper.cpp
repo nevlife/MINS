@@ -21,11 +21,8 @@
 #include "update/vicon/ViconTypes.h"
 #include "update/wheel/WheelTypes.h"
 #include "utils/Print_Logger.h"
-#if __has_include(<cv_bridge/cv_bridge.h>)
-#include <cv_bridge/cv_bridge.h>
-#else
 #include <cv_bridge/cv_bridge.hpp>
-#endif
+#include <opencv2/imgproc.hpp>
 #include <vector>
 
 using namespace sensor_msgs::msg;
@@ -173,6 +170,32 @@ bool ROS2Helper::Image2Data(const sensor_msgs::msg::Image::ConstSharedPtr msg, i
     cam.masks.push_back(op->masks.at(cam_id));
   } else {
     cam.masks.push_back(cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_8UC1));
+  }
+  return true;
+}
+
+bool ROS2Helper::Image2Data(const sensor_msgs::flux_msg::Image::View &img, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op) {
+  const std::string_view encoding = img.encoding();
+  const bool mono = encoding == image_encodings::MONO8;
+  if (!mono && encoding != image_encodings::RGB8 && encoding != image_encodings::BGR8) {
+    PRINT4("flux image: unsupported encoding %.*s\n", static_cast<int>(encoding.size()), encoding.data());
+    return false;
+  }
+  const cv::Mat raw(static_cast<int>(img.height()), static_cast<int>(img.width()), mono ? CV_8UC1 : CV_8UC3,
+                    const_cast<std::uint8_t *>(img.data().data()), img.step());
+  cv::Mat gray;
+  if (mono)
+    gray = raw.clone();
+  else
+    cv::cvtColor(raw, gray, encoding == image_encodings::RGB8 ? cv::COLOR_RGB2GRAY : cv::COLOR_BGR2GRAY);
+
+  cam.timestamp = img.header__sec() + img.header__nanosec() * 1e-9;
+  cam.sensor_ids.push_back(cam_id);
+  cam.images.push_back(gray);
+  if (op->use_mask.at(cam_id)) {
+    cam.masks.push_back(op->masks.at(cam_id));
+  } else {
+    cam.masks.push_back(cv::Mat::zeros(gray.rows, gray.cols, CV_8UC1));
   }
   return true;
 }
