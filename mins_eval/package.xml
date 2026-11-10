@@ -23,6 +23,9 @@
     <depend>sensor_msgs</depend>
     <depend>ov_core</depend>
     <depend>ov_eval</depend>
+    <depend>mins</depend>
+    <depend>std_msgs</depend>
+    <depend>eigen</depend>
 
     <!-- Note the export is required to expose the executables -->
     <export>
