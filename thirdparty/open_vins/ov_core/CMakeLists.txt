@@ -12,7 +12,9 @@ message(STATUS "OPENCV: " ${OpenCV_VERSION})
 
 # If we will compile with aruco support
 option(ENABLE_ARUCO_TAGS "Enable or disable aruco tag (disable if no contrib modules)" ON)
-if (NOT ENABLE_ARUCO_TAGS)
+# JetPack's OpenCV has no contrib modules, so aruco is turned off where its header is missing.
+find_file(OPENCV_ARUCO_HEADER opencv2/aruco.hpp PATHS ${OpenCV_INCLUDE_DIRS} NO_DEFAULT_PATH)
+if (NOT ENABLE_ARUCO_TAGS OR NOT OPENCV_ARUCO_HEADER)
     add_definitions(-DENABLE_ARUCO_TAGS=0)
     message(WARNING "DISABLING ARUCOTAG TRACKING!")
 else ()

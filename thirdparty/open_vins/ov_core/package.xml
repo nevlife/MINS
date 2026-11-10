@@ -29,7 +29,6 @@
     <!-- System dependencies -->
     <depend>eigen</depend>
     <depend>libopencv-dev</depend>
-    <depend>libopencv-contrib-dev</depend>
 
     <!-- Note the export is required to expose the executables -->
     <export>
