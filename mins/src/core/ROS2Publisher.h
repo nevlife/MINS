@@ -59,8 +59,8 @@ public:
   void publish_vicon(ViconData data);
 
   /// Publish the active tracking image
-  void publish_cam_images(std::vector<int> cam_ids);
-  void publish_cam_images(int cam_id);
+  void publish_cam_images(std::vector<int> cam_ids, double time);
+  void publish_cam_images(int cam_id, double time);
 
   /// Publish lidar point cloud
   void publish_lidar_cloud(std::shared_ptr<mins::PointCloud<mins::PointXYZ>> lidar);

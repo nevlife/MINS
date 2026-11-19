@@ -143,7 +143,7 @@ void ROS2Publisher::publish_imu() {
   odom.block(7, 0, 3, 1) = sys->state->imu->vel();
   odom.block(10, 0, 3, 1) = sys->state->have_cpi(sys->state->time) ? sys->state->cpis.at(sys->state->time).w : Vector3d::Zero();
   nav_msgs::msg::Odometry odomIinG = ROS2Helper::ToOdometry(odom);
-  odomIinG.header.stamp = rclcpp::Time(static_cast<int64_t>(sys->state->time * 1e9));
+  odomIinG.header.stamp = ROS2Helper::ToStamp(sys->state->time);
   odomIinG.header.frame_id = "global";
   odomIinG.child_frame_id = "imu";
 
@@ -175,7 +175,7 @@ void ROS2Publisher::publish_tf() {
   // Publish our transform on TF
   // NOTE: since we use JPL we have an implicit conversion to Hamilton when we publish
   // NOTE: a rotation from GtoI in JPL has the same xyzw as a ItoG Hamilton rotation
-  auto trans = ROS2Helper::Pose2TF(sys->state->imu->pose(), false);
+  auto trans = ROS2Helper::Pose2TF(sys->state->imu->pose(), false, sys->state->time);
   trans.header.frame_id = "global";
   trans.child_frame_id = "imu";
   mTfBr->sendTransform(trans);
@@ -183,7 +183,7 @@ void ROS2Publisher::publish_tf() {
   // Loop through each sensor calibration and publish it
   if (sys->state->op->cam->enabled) {
     for (const auto &calib : sys->state->cam_extrinsic) {
-      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(calib.second, true);
+      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(calib.second, true, sys->state->time);
       trans_calib.header.frame_id = "imu";
       trans_calib.child_frame_id = "cam" + to_string(calib.first);
       mTfBr->sendTransform(trans_calib);
@@ -192,7 +192,7 @@ void ROS2Publisher::publish_tf() {
 
   if (sys->state->op->vicon->enabled) {
     for (const auto &calib : sys->state->vicon_extrinsic) {
-      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(calib.second, true);
+      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(calib.second, true, sys->state->time);
       trans_calib.header.frame_id = "imu";
       trans_calib.child_frame_id = "vicon" + to_string(calib.first);
       mTfBr->sendTransform(trans_calib);
@@ -201,7 +201,7 @@ void ROS2Publisher::publish_tf() {
 
   if (sys->state->op->gps->enabled) {
     for (const auto &calib : sys->state->gps_extrinsic) {
-      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pos2TF(calib.second, true);
+      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pos2TF(calib.second, true, sys->state->time);
       trans_calib.header.frame_id = "imu";
       trans_calib.child_frame_id = "gps" + to_string(calib.first);
       mTfBr->sendTransform(trans_calib);
@@ -210,7 +210,7 @@ void ROS2Publisher::publish_tf() {
 
   if (sys->state->op->lidar->enabled) {
     for (const auto &calib : sys->state->lidar_extrinsic) {
-      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(calib.second, true);
+      geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(calib.second, true, sys->state->time);
       trans_calib.header.frame_id = "imu";
       trans_calib.child_frame_id = "lidar" + to_string(calib.first);
       mTfBr->sendTransform(trans_calib);
@@ -218,7 +218,7 @@ void ROS2Publisher::publish_tf() {
   }
 
   if (sys->state->op->wheel->enabled) {
-    geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(sys->state->wheel_extrinsic, true);
+    geometry_msgs::msg::TransformStamped trans_calib = ROS2Helper::Pose2TF(sys->state->wheel_extrinsic, true, sys->state->time);
     trans_calib.header.frame_id = "imu";
     trans_calib.child_frame_id = "wheel";
     mTfBr->sendTransform(trans_calib);
@@ -227,7 +227,7 @@ void ROS2Publisher::publish_tf() {
   // Publish clone poses
   int clone_count = 0;
   for (const auto &C : sys->state->clones) {
-    geometry_msgs::msg::TransformStamped trans = ROS2Helper::Pose2TF(C.second, false);
+    geometry_msgs::msg::TransformStamped trans = ROS2Helper::Pose2TF(C.second, false, C.first);
     trans.header.frame_id = "global";
     trans.child_frame_id = "c" + to_string(clone_count++);
     mTfBr->sendTransform(trans);
@@ -247,7 +247,7 @@ void ROS2Publisher::publish_state() {
 
   // Create pose of IMU (note we use the bag time)
   geometry_msgs::msg::PoseWithCovarianceStamped poseIinM = ROS2Helper::ToPoseCov(sys->state->imu->value().block(0, 0, 7, 1));
-  poseIinM.header.stamp = rclcpp::Time(static_cast<int64_t>(sys->state->time * 1e9));
+  poseIinM.header.stamp = ROS2Helper::ToStamp(sys->state->time);
   //  poseIinM.header.seq = seq_imu;
   poseIinM.header.frame_id = "global";
 
@@ -276,7 +276,7 @@ void ROS2Publisher::publish_state() {
   // NOTE: We downsample the number of poses as needed to prevent rviz crashes
   // NOTE: https://github.com/ros-visualization/rviz/issues/1107
   nav_msgs::msg::Path arrIMU;
-  arrIMU.header.stamp = rclcpp::Clock().now();
+  arrIMU.header.stamp = ROS2Helper::ToStamp(sys->state->time);
   //  arrIMU.header.seq = seq_imu;
   arrIMU.header.frame_id = "global";
   for (int i = 0; i < (int)path_imu.size(); i += floor((double)path_imu.size() / 16384.0) + 1) {
@@ -291,12 +291,12 @@ void ROS2Publisher::publish_state() {
   publish_tf();
 }
 
-void ROS2Publisher::publish_cam_images(vector<int> cam_ids) {
+void ROS2Publisher::publish_cam_images(vector<int> cam_ids, double time) {
   for (auto cam_id : cam_ids)
-    publish_cam_images(cam_id);
+    publish_cam_images(cam_id, time);
 }
 
-void ROS2Publisher::publish_cam_images(int cam_id) {
+void ROS2Publisher::publish_cam_images(int cam_id, double time) {
   // Publish image at cam 0 rate and have all the images from each camera
   if (cam_id != 0)
     return;
@@ -312,7 +312,7 @@ void ROS2Publisher::publish_cam_images(int cam_id) {
 
     // Create our message & Publish
     std_msgs::msg::Header header;
-    header.stamp = rclcpp::Clock().now();
+    header.stamp = ROS2Helper::ToStamp(time);
     pub_cam_image.at(i).publish(cv_bridge::CvImage(header, "bgr8", sys->up_cam->get_track_img(i)).toImageMsg());
   }
 }
@@ -325,12 +325,12 @@ void ROS2Publisher::publish_cam_features() {
 
   // Get our good MSCKF features
   vector<Vector3d> feats_msckf = sys->up_cam->get_used_msckf();
-  sensor_msgs::msg::PointCloud2 cloud = ROS2Helper::ToPointcloud(feats_msckf, "global");
+  sensor_msgs::msg::PointCloud2 cloud = ROS2Helper::ToPointcloud(feats_msckf, "global", sys->state->time);
   pub_cam_msckf->publish(cloud);
 
   // Get our good SLAM features
   vector<Vector3d> feats_slam = sys->state->get_features_SLAM();
-  sensor_msgs::msg::PointCloud2 cloud_SLAM = ROS2Helper::ToPointcloud(feats_slam, "global");
+  sensor_msgs::msg::PointCloud2 cloud_SLAM = ROS2Helper::ToPointcloud(feats_slam, "global", sys->state->time);
   pub_cam_slam->publish(cloud_SLAM);
 }
 
@@ -346,7 +346,7 @@ void ROS2Publisher::publish_gps(GPSData gps, bool isGeodetic) {
 
   // Now put the measurement in publisher
   geometry_msgs::msg::PoseStamped poseGPSinENU;
-  poseGPSinENU.header.stamp = rclcpp::Clock().now();
+  poseGPSinENU.header.stamp = ROS2Helper::ToStamp(gps.time);
   //  poseGPSinENU.header.seq = seq_gps[gps.id];
   poseGPSinENU.header.frame_id = "global";
   poseGPSinENU.pose.position.x = gps.meas(0);
@@ -361,7 +361,7 @@ void ROS2Publisher::publish_gps(GPSData gps, bool isGeodetic) {
   // Append to our poses vector and create GPS path
   path_gps[gps.id].push_back(poseGPSinENU);
   nav_msgs::msg::Path arrGPS;
-  arrGPS.header.stamp = rclcpp::Clock().now();
+  arrGPS.header.stamp = ROS2Helper::ToStamp(gps.time);
   //  arrGPS.header.seq = seq_gps[gps.id];
   arrGPS.header.frame_id = "global";
   arrGPS.poses = path_gps[gps.id];
@@ -375,7 +375,7 @@ void ROS2Publisher::publish_vicon(ViconData data) {
 
   // Now put the measurement in publisher
   geometry_msgs::msg::PoseStamped poseVicon;
-  poseVicon.header.stamp = rclcpp::Clock().now();
+  poseVicon.header.stamp = ROS2Helper::ToStamp(data.time);
   //  poseVicon.header.seq = seq_vicon[data.id];
   poseVicon.header.frame_id = "global";
   poseVicon.pose.position.x = data.pose(3, 0);
@@ -391,7 +391,7 @@ void ROS2Publisher::publish_vicon(ViconData data) {
   // Append to our poses vector and create vicon path
   path_vicon[data.id].push_back(poseVicon);
   nav_msgs::msg::Path arrVicon;
-  arrVicon.header.stamp = rclcpp::Clock().now();
+  arrVicon.header.stamp = ROS2Helper::ToStamp(data.time);
   //  arrVicon.header.seq = seq_vicon[data.id];
   arrVicon.header.frame_id = "global";
   arrVicon.poses = path_vicon[data.id];
@@ -405,7 +405,7 @@ void ROS2Publisher::publish_lidar_cloud(std::shared_ptr<mins::PointCloud<mins::P
   sensor_msgs::msg::PointCloud2 output;
   mins::toPC2(*lidar, output);
   output.header.frame_id = "lidar" + lidar->header.frame_id;
-  output.header.stamp = rclcpp::Clock().now();
+  output.header.stamp = ROS2Helper::ToStamp(lidar->header.stamp / 1000.0);
   pub_lidar_cloud.at(stoi(lidar->header.frame_id))->publish(output);
 }
 
@@ -445,7 +445,7 @@ void ROS2Publisher::publish_lidar_map() {
 
     // Publish tf of map
     geometry_msgs::msg::TransformStamped trans;
-    trans.header.stamp = rclcpp::Clock().now();
+    trans.header.stamp = ROS2Helper::ToStamp(ikd->time + dt);
     geometry_msgs::msg::Quaternion quat;
 
     quat.x = qGtoM(0);
@@ -480,7 +480,7 @@ void ROS2Publisher::publish_lidar_map() {
     sensor_msgs::msg::PointCloud2 map_pointcloud;
     mins::toPC2(*map_inG, map_pointcloud);
     map_pointcloud.header.frame_id = "global";
-    map_pointcloud.header.stamp = rclcpp::Clock().now();
+    map_pointcloud.header.stamp = ROS2Helper::ToStamp(ikd->time + dt);
     pub_lidar_map.at(ikd->id)->publish(map_pointcloud);
   }
 }

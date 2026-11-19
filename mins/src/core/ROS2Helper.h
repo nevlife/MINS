@@ -61,11 +61,14 @@ class ROS2Helper {
 
 public:
   /// Collection of format converters
-  static sensor_msgs::msg::PointCloud2 ToPointcloud(const vector<Eigen::Vector3d> &feats, string frame_id);
+  /// Seconds to a header stamp; rclcpp::Time(double) would read the seconds as nanoseconds
+  static builtin_interfaces::msg::Time ToStamp(double time);
 
-  static geometry_msgs::msg::TransformStamped Pose2TF(const shared_ptr<ov_type::PoseJPL> &pose, bool flip_trans);
+  static sensor_msgs::msg::PointCloud2 ToPointcloud(const vector<Eigen::Vector3d> &feats, string frame_id, double time);
 
-  static geometry_msgs::msg::TransformStamped Pos2TF(const shared_ptr<ov_type::Vec> &pos, bool flip_trans);
+  static geometry_msgs::msg::TransformStamped Pose2TF(const shared_ptr<ov_type::PoseJPL> &pose, bool flip_trans, double time);
+
+  static geometry_msgs::msg::TransformStamped Pos2TF(const shared_ptr<ov_type::Vec> &pos, bool flip_trans, double time);
 
   static ov_core::ImuData Imu2Data(const sensor_msgs::msg::Imu::SharedPtr msg);
 

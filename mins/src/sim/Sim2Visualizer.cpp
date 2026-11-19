@@ -63,7 +63,7 @@ void Sim2Visualizer::publish_sim_cam_features() {
 
   // Get our good SIMULATION features
   vector<Eigen::Vector3d> feats_sim = sim->get_cam_map_vec();
-  sensor_msgs::msg::PointCloud2 cloud_SIM = ROS2Helper::ToPointcloud(feats_sim, "global");
+  sensor_msgs::msg::PointCloud2 cloud_SIM = ROS2Helper::ToPointcloud(feats_sim, "global", sys->state->time);
   pub_sim_cam_points->publish(cloud_SIM);
 }
 
@@ -96,7 +96,7 @@ void Sim2Visualizer::publish_groundtruth() {
 
   // Create pose of IMU
   geometry_msgs::msg::PoseStamped poseIinM;
-  poseIinM.header.stamp = rclcpp::Time(static_cast<int64_t>(sys->state->time * 1e9));
+  poseIinM.header.stamp = ROS2Helper::ToStamp(sys->state->time);
   //  poseIinM.header.seq = poses_seq_gt;
   poseIinM.header.frame_id = "global";
   poseIinM.pose.orientation.x = state_gt(1, 0);
@@ -115,7 +115,7 @@ void Sim2Visualizer::publish_groundtruth() {
   // NOTE: We downsample the number of poses as needed to prevent rviz crashes
   // NOTE: https://github.com/ros-visualization/rviz/issues/1107
   nav_msgs::msg::Path arrIMU;
-  arrIMU.header.stamp = rclcpp::Clock().now();
+  arrIMU.header.stamp = ROS2Helper::ToStamp(sys->state->time);
   //  arrIMU.header.seq = poses_seq_gt;
   arrIMU.header.frame_id = "global";
   for (size_t i = 0; i < poses_gt.size(); i += floor((double)poses_gt.size() / 16384.0) + 1) {
@@ -128,7 +128,7 @@ void Sim2Visualizer::publish_groundtruth() {
 
   // Publish our transform on TF
   geometry_msgs::msg::TransformStamped trans;
-  trans.header.stamp = rclcpp::Clock().now();
+  trans.header.stamp = ROS2Helper::ToStamp(sys->state->time);
   trans.header.frame_id = "global";
   trans.child_frame_id = "truth";
   geometry_msgs::msg::Quaternion quat;
@@ -197,7 +197,7 @@ void Sim2Visualizer::publish_lidar_structure() {
     // Our plane will be a line list
     Marker marker_plane;
     marker_plane.header.frame_id = "global";
-    marker_plane.header.stamp = rclcpp::Clock().now();
+    marker_plane.header.stamp = ROS2Helper::ToStamp(sys->state->time);
     marker_plane.ns = "sim_lidar_map";
     marker_plane.id = ct;
     marker_plane.type = Marker::LINE_LIST;

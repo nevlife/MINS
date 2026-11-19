@@ -143,7 +143,7 @@ void ROS2Subscriber::callback_monocular_I(const Image::ConstSharedPtr msg, int c
   ov_core::CameraData cam;
   if (ROS2Helper::Image2Data(msg, cam_id, cam, op->cam)) {
     sys->feed_measurement_camera(cam);
-    pub->publish_cam_images(cam_id);
+    pub->publish_cam_images(cam_id, cam.timestamp);
     PRINT1(YELLOW "[SUB] MONO Cam measurement: %.3f|%d\n" RESET, cam.timestamp, cam_id);
   }
 }
@@ -153,7 +153,7 @@ void ROS2Subscriber::callback_monocular_C(const CompressedImage::ConstSharedPtr 
   ov_core::CameraData cam;
   if (ROS2Helper::Image2Data(msg, cam_id, cam, op->cam)) {
     sys->feed_measurement_camera(cam);
-    pub->publish_cam_images(cam_id);
+    pub->publish_cam_images(cam_id, cam.timestamp);
     PRINT1(YELLOW "[SUB] MONO Cam measurement: %.3f|%d\n" RESET, cam.timestamp, cam_id);
   }
 }
@@ -162,7 +162,7 @@ void ROS2Subscriber::callback_monocular_F(const sensor_msgs::flux_msg::Image::Vi
   ov_core::CameraData cam;
   if (ROS2Helper::Image2Data(img, cam_id, cam, op->cam)) {
     sys->feed_measurement_camera(cam);
-    pub->publish_cam_images(cam_id);
+    pub->publish_cam_images(cam_id, cam.timestamp);
     PRINT1(YELLOW "[SUB] MONO Cam measurement: %.3f|%d\n" RESET, cam.timestamp, cam_id);
   }
 }
@@ -174,7 +174,7 @@ void ROS2Subscriber::callback_stereo_I(const Image::ConstSharedPtr msg0, const I
   bool success1 = ROS2Helper::Image2Data(msg1, cam_id1, cam, op->cam);
   if (success0 && success1) {
     sys->feed_measurement_camera(cam);
-    pub->publish_cam_images({cam_id0, cam_id1});
+    pub->publish_cam_images({cam_id0, cam_id1}, cam.timestamp);
     PRINT1(YELLOW "[SUB] STEREO Cam measurement: %.3f|%d|%d\n" RESET, cam.timestamp, cam_id0, cam_id1);
   } else {
     PRINT_ERROR("[SUB] Stereo Image Error!");
@@ -189,7 +189,7 @@ void ROS2Subscriber::callback_stereo_C(const CompressedImage::ConstSharedPtr msg
   bool success1 = ROS2Helper::Image2Data(msg1, cam_id1, cam, op->cam);
   if (success0 && success1) {
     sys->feed_measurement_camera(cam);
-    pub->publish_cam_images({cam_id0, cam_id1});
+    pub->publish_cam_images({cam_id0, cam_id1}, cam.timestamp);
     PRINT1(YELLOW "[SUB] STEREO Cam measurement: %.3f|%d|%d\n" RESET, rclcpp::Time(msg0->header.stamp).seconds(), cam_id0, cam_id1);
   }
 }

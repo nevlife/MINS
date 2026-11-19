@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     CamSimData cam;
     if (sim->get_next_cam(cam)) {
       sys->feed_measurement_camsim(cam);
-      pub->publish_cam_images(cam.ids);
+      pub->publish_cam_images(cam.ids, cam.time);
       sim_viz->publish_sim_cam_features();
     }
 

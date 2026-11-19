@@ -27,12 +27,14 @@
 
 using namespace sensor_msgs::msg;
 using namespace mins;
-PointCloud2 ROS2Helper::ToPointcloud(const std::vector<Eigen::Vector3d> &feats, std::string frame_id) {
+builtin_interfaces::msg::Time ROS2Helper::ToStamp(double time) { return rclcpp::Time(static_cast<int64_t>(time * 1e9)); }
+
+PointCloud2 ROS2Helper::ToPointcloud(const std::vector<Eigen::Vector3d> &feats, std::string frame_id, double time) {
 
   // Declare message and sizes
   PointCloud2 cloud;
   cloud.header.frame_id = frame_id;
-  cloud.header.stamp = rclcpp::Clock().now();
+  cloud.header.stamp = ToStamp(time);
   cloud.width = feats.size();
   cloud.height = 1;
   cloud.is_bigendian = false;
@@ -60,7 +62,7 @@ PointCloud2 ROS2Helper::ToPointcloud(const std::vector<Eigen::Vector3d> &feats, 
   return cloud;
 }
 
-geometry_msgs::msg::TransformStamped ROS2Helper::Pose2TF(const shared_ptr<ov_type::PoseJPL> &pose, bool flip_trans) {
+geometry_msgs::msg::TransformStamped ROS2Helper::Pose2TF(const shared_ptr<ov_type::PoseJPL> &pose, bool flip_trans, double time) {
 
   // Need to flip the transform to the imu frame
   Eigen::Vector4d q_ItoC = pose->quat();
@@ -73,7 +75,7 @@ geometry_msgs::msg::TransformStamped ROS2Helper::Pose2TF(const shared_ptr<ov_typ
   // NOTE: since we use JPL we have an implicit conversion to Hamilton when we publish
   // NOTE: a rotation from ItoC in JPL has the same xyzw as a CtoI Hamilton rotation
   geometry_msgs::msg::TransformStamped trans;
-  trans.header.stamp = rclcpp::Clock().now();
+  trans.header.stamp = ToStamp(time);
   geometry_msgs::msg::Quaternion quat;
   quat.x = q_ItoC(0);
   quat.y = q_ItoC(1);
@@ -88,14 +90,14 @@ geometry_msgs::msg::TransformStamped ROS2Helper::Pose2TF(const shared_ptr<ov_typ
   return trans;
 }
 
-geometry_msgs::msg::TransformStamped ROS2Helper::Pos2TF(const shared_ptr<ov_type::Vec> &pos, bool flip_trans) {
+geometry_msgs::msg::TransformStamped ROS2Helper::Pos2TF(const shared_ptr<ov_type::Vec> &pos, bool flip_trans, double time) {
   assert(pos->size() == 3);
   // Need to flip the transform to the imu frame
   Eigen::Vector3d p_XinI = pos->value();
 
   // publish our transform on TF
   geometry_msgs::msg::TransformStamped trans;
-  trans.header.stamp = rclcpp::Clock().now();
+  trans.header.stamp = ToStamp(time);
   geometry_msgs::msg::Quaternion quat;
   quat.w = 1;
   trans.transform.rotation = quat;
