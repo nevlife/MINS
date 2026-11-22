@@ -81,8 +81,9 @@ ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_p
       } else {
         // create MONO subscriber
         if (transport == "flux") {
-          auto image_sub = make_shared<flux::Subscription>(*node, op->cam->topic.at(i), sensor_msgs::flux_msg::Image::kFingerprint, flux::QoS{},
-                                                           [this, i](const flux::FrameView &frame) { callback_monocular_F(sensor_msgs::flux_msg::Image::View{frame}, i); });
+          auto image_sub = flux::create_subscription(*node, op->cam->topic.at(i), flux::QoS{},
+                                                     [this, i](const flux::Frame &frame) { callback_monocular_F(sensor_msgs::flux_msg::Image::View{frame}, i); },
+                                                     {}, sensor_msgs::flux_msg::Image::kFingerprint);
           image_sub->add_to_callback_group(*node);
           flux_subs.push_back(image_sub);
           PRINT2("subscribing to cam (mono, flux): %s\n", op->cam->topic.at(i).c_str());
