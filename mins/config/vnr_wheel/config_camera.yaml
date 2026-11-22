@@ -1,0 +1,47 @@
+%YAML:1.0 # need to specify the file type at the top!
+
+# RealSense color camera on SCV, monocular. Extrinsic and time offset come from the static TF
+# and are not calibrated against the IMU, so both are estimated online.
+cam:
+  enabled: true
+  max_n: 1
+  use_stereo: false
+  stereo_pair: [0, 1]
+  do_calib_ext: true
+  do_calib_int: false
+  do_calib_dt: true
+  n_pts: 200
+  fast: 20
+  grid_x: 20
+  grid_y: 20
+  min_px_dist: 15
+  knn: 0.70
+  downsample: false
+  histogram_method: "HISTOGRAM" # NONE, HISTOGRAM, CLAHE
+  max_slam: 50
+  max_msckf: 50
+  feat_rep: "GLOBAL_3D"
+  init_cov_dt: 1e-4
+  init_cov_ex_o: 1e-4
+  init_cov_ex_p: 1e-4
+  init_cov_in_k: 1e-1
+  init_cov_in_c: 1e-1
+  init_cov_in_r: 1e-5
+  sigma_px: 1
+  chi2_mult: 1
+
+cam0:
+  timeoffset: 0.0
+  # tf_static camera_color_optical_frame in vectornav, with the vectornav axes the data shows (x right,
+  # y forward, z up) instead of the identity tf_static gives sensors_base_link -> vectornav.
+  T_imu_cam: # rotation from camera to IMU, position of camera in IMU
+    - [0.999141, -0.029989, 0.028611, 0.021344]
+    - [-0.033651, -0.183910, 0.982367, 0.326144]
+    - [-0.024199, -0.982486, -0.184761, -0.086799]
+    - [0.0, 0.0, 0.0, 1.0]
+  intrinsics: [450.69827, 450.13953, 443.96533, 260.06781] # fu, fv, cu, cv
+  # camera_info plumb_bob without k3 (-0.0192)
+  distortion_coeffs: [-0.0555432, 0.0631185, 0.0002300, 0.0008906]
+  distortion_model: radtan
+  resolution: [896, 504]
+  topic: "/camera/camera/color/image_raw"
