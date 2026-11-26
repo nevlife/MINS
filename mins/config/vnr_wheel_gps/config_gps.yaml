@@ -1,7 +1,8 @@
 %YAML:1.0 # need to specify the file type at the top!
 
 # u-blox fixes from prior_map_localization gps_cov_floor. The KAIST noise and gating, not tuned here.
-# MINS reads NavSatFix covariance as a standard deviation, so the fixed noise replaces it.
+# overwrite_noise keeps the fixed noise. With false MINS takes the square root of the NavSatFix
+# variances and multiplies it by noise_scale; that path has not been tried on our bags.
 gps:
   enabled: true
   max_n: 1
