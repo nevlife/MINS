@@ -133,9 +133,7 @@ GPSData ROS2Helper::NavSatFix2Data(const sensor_msgs::msg::NavSatFix::SharedPtr 
   data.meas(0) = msg->latitude;
   data.meas(1) = msg->longitude;
   data.meas(2) = msg->altitude;
-  data.noise(0) = msg->position_covariance.at(0);
-  data.noise(1) = msg->position_covariance.at(4);
-  data.noise(2) = msg->position_covariance.at(8);
+  data.noise = GPSNoiseFromCovariance(msg->position_covariance.data());
   return data;
 }
 
@@ -146,9 +144,7 @@ GPSData ROS2Helper::NavSatFix2Data(const sensor_msgs::msg::NavSatFix::ConstShare
   data.meas(0) = msg->latitude;
   data.meas(1) = msg->longitude;
   data.meas(2) = msg->altitude;
-  data.noise(0) = msg->position_covariance.at(0);
-  data.noise(1) = msg->position_covariance.at(4);
-  data.noise(2) = msg->position_covariance.at(8);
+  data.noise = GPSNoiseFromCovariance(msg->position_covariance.data());
   return data;
 }
 
