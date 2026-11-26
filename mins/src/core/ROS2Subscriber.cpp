@@ -26,11 +26,7 @@ using namespace std;
 using namespace Eigen;
 using namespace mins;
 
-ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_ptr<SystemManager> sys, std::shared_ptr<ROS2Publisher> pub,
-                               const std::string &transport)
-    : node(node), sys(sys), pub(pub) {
-  if (transport != "dds" && transport != "flux")
-    throw std::invalid_argument("transport must be dds or flux, got " + transport);
+ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_ptr<SystemManager> sys, std::shared_ptr<ROS2Publisher> pub) : node(node), sys(sys), pub(pub) {
   // Copy option for easier access
   op = sys->state->op;
 
@@ -44,8 +40,6 @@ ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_p
   if (op->cam->enabled) {
     for (int i = 0; i < op->cam->max_n; i++) {
       // Check if this is stereo
-      if (transport == "flux" && (op->cam->stereo_pairs.count(i) > 0 || op->cam->compressed.at(i)))
-        throw std::invalid_argument("flux transport takes monocular raw images only");
       if (op->cam->stereo_pairs.find(i) != op->cam->stereo_pairs.end()) {
         if (i < op->cam->stereo_pairs.at(i)) {
           // Logic for sync stereo subscriber
@@ -66,35 +60,28 @@ ROS2Subscriber::ROS2Subscriber(std::shared_ptr<rclcpp::Node> node, std::shared_p
             PRINT2("subscribing to cam (stereo, compressed): %s\n", op->cam->topic.at(cam_id1).c_str());
 
           } else {
-            auto image_sub0 = make_mf_subscriber<Image>(node, op->cam->topic.at(cam_id0));
-            auto image_sub1 = make_mf_subscriber<Image>(node, op->cam->topic.at(cam_id1));
+            auto image_sub0 = std::make_shared<flux_wrapper::message_filters::Subscriber<Image>>(*node, op->cam->topic.at(cam_id0), rclcpp::QoS(10), 10);
+            auto image_sub1 = std::make_shared<flux_wrapper::message_filters::Subscriber<Image>>(*node, op->cam->topic.at(cam_id1), rclcpp::QoS(10), 10);
             auto sync = std::make_shared<message_filters::Synchronizer<sync_pol>>(sync_pol(10), *image_sub0, *image_sub1);
             sync->registerCallback(std::bind(&ROS2Subscriber::callback_stereo_I, this, std::placeholders::_1, std::placeholders::_2, cam_id0, cam_id1));
             // Append to our vector of subscribers
             sync_cam.push_back(sync);
-            image_subs.push_back(image_sub0);
-            image_subs.push_back(image_sub1);
+            sync_image_subs.push_back(image_sub0);
+            sync_image_subs.push_back(image_sub1);
             PRINT2("subscribing to cam (stereo): %s\n", op->cam->topic.at(cam_id0).c_str());
             PRINT2("subscribing to cam (stereo): %s\n", op->cam->topic.at(cam_id1).c_str());
           }
         }
       } else {
         // create MONO subscriber
-        if (transport == "flux") {
-          auto image_sub = flux::create_subscription(*node, op->cam->topic.at(i), flux::QoS{},
-                                                     [this, i](const flux::Frame &frame) { callback_monocular_F(sensor_msgs::flux_msg::Image::View{frame}, i); },
-                                                     {}, sensor_msgs::flux_msg::Image::kFingerprint);
-          image_sub->add_to_callback_group(*node);
-          flux_subs.push_back(image_sub);
-          PRINT2("subscribing to cam (mono, flux): %s\n", op->cam->topic.at(i).c_str());
-        } else if (op->cam->compressed.at(i)) {
+        if (op->cam->compressed.at(i)) {
           auto image_sub = make_mf_subscriber<CompressedImage>(node, op->cam->topic.at(i));
           image_sub->registerCallback(std::bind(&ROS2Subscriber::callback_monocular_C, this, std::placeholders::_1, i));
           cimage_subs.push_back(image_sub);
           PRINT2("subscribing to cam (mono, compressed): %s\n", op->cam->topic.at(i).c_str());
         } else {
-          auto image_sub = make_mf_subscriber<Image>(node, op->cam->topic.at(i));
-          image_sub->registerCallback(std::bind(&ROS2Subscriber::callback_monocular_I, this, std::placeholders::_1, i));
+          auto image_sub = std::make_shared<flux_wrapper::Subscription<Image>>(*node, op->cam->topic.at(i), rclcpp::QoS(10),
+                                                                              [this, i](const flux_wrapper::View<Image> &msg) { callback_monocular_I(msg, i); });
           image_subs.push_back(image_sub);
           PRINT2("subscribing to cam (mono): %s\n", op->cam->topic.at(i).c_str());
         }
@@ -138,7 +125,7 @@ void ROS2Subscriber::callback_inertial(const Imu::SharedPtr msg) {
   PRINT1(YELLOW "|%.3f,%.3f,%.3f|%.3f,%.3f,%.3f\n" RESET, imu.wm(0), imu.wm(1), imu.wm(2), imu.am(0), imu.am(1), imu.am(2));
 }
 
-void ROS2Subscriber::callback_monocular_I(const Image::ConstSharedPtr msg, int cam_id) {
+void ROS2Subscriber::callback_monocular_I(const flux_wrapper::View<Image> &msg, int cam_id) {
   // convert into correct format & send it to our system
   //
   ov_core::CameraData cam;
@@ -159,20 +146,11 @@ void ROS2Subscriber::callback_monocular_C(const CompressedImage::ConstSharedPtr 
   }
 }
 
-void ROS2Subscriber::callback_monocular_F(const sensor_msgs::flux_msg::Image::View &img, int cam_id) {
-  ov_core::CameraData cam;
-  if (ROS2Helper::Image2Data(img, cam_id, cam, op->cam)) {
-    sys->feed_measurement_camera(cam);
-    pub->publish_cam_images(cam_id, cam.timestamp);
-    PRINT1(YELLOW "[SUB] MONO Cam measurement: %.3f|%d\n" RESET, cam.timestamp, cam_id);
-  }
-}
-
-void ROS2Subscriber::callback_stereo_I(const Image::ConstSharedPtr msg0, const Image::ConstSharedPtr msg1, int cam_id0, int cam_id1) {
+void ROS2Subscriber::callback_stereo_I(const shared_ptr<const StampedImage> msg0, const shared_ptr<const StampedImage> msg1, int cam_id0, int cam_id1) {
   // convert into correct format & send it to our system
   ov_core::CameraData cam;
-  bool success0 = ROS2Helper::Image2Data(msg0, cam_id0, cam, op->cam);
-  bool success1 = ROS2Helper::Image2Data(msg1, cam_id1, cam, op->cam);
+  bool success0 = ROS2Helper::Image2Data(*msg0->view, cam_id0, cam, op->cam);
+  bool success1 = ROS2Helper::Image2Data(*msg1->view, cam_id1, cam, op->cam);
   if (success0 && success1) {
     sys->feed_measurement_camera(cam);
     pub->publish_cam_images({cam_id0, cam_id1}, cam.timestamp);

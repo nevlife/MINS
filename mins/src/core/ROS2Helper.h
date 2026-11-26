@@ -28,7 +28,7 @@ template <class PointT> struct PointCloud;
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <sensor_msgs/flux/image.hpp>
+#include <flux_wrapper/flux_wrapper.hpp>
 
 using namespace std;
 using namespace sensor_msgs;
@@ -72,12 +72,10 @@ public:
 
   static ov_core::ImuData Imu2Data(const sensor_msgs::msg::Imu::SharedPtr msg);
 
-  static bool Image2Data(const sensor_msgs::msg::Image::ConstSharedPtr msg, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op);
+  /// Reads the flux slot or the ROS message in place: the conversion to mono8 is the only copy
+  static bool Image2Data(const flux_wrapper::View<sensor_msgs::msg::Image> &img, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op);
 
   static bool Image2Data(const sensor_msgs::msg::CompressedImage::ConstSharedPtr msg, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op);
-
-  /// Reads the flux slot in place: the grayscale conversion is the only copy (mono8, rgb8, bgr8)
-  static bool Image2Data(const sensor_msgs::flux_msg::Image::View &img, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op);
 
   static WheelData JointState2Data(const sensor_msgs::msg::JointState::SharedPtr msg);
 

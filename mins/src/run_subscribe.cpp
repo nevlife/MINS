@@ -42,8 +42,6 @@ int main(int argc, char **argv) {
   options.automatically_declare_parameters_from_overrides(true);
   auto node = std::make_shared<rclcpp::Node>("mins_subscribe", options);
   node->get_parameter<std::string>("config_path", config_path);
-  string transport = "dds";
-  node->get_parameter<std::string>("transport", transport);
   std::cout << "Loading config from path: " << config_path << std::endl;
   // Load the config
   auto parser = make_shared<ov_core::YamlParser>(config_path);
@@ -55,7 +53,7 @@ int main(int argc, char **argv) {
   // Create our system
   shared_ptr<SystemManager> sys = make_shared<SystemManager>(op->est);
   shared_ptr<ROS2Publisher> pub = make_shared<ROS2Publisher>(node, sys, op);
-  shared_ptr<ROS2Subscriber> sub = make_shared<ROS2Subscriber>(node, sys, pub, transport);
+  shared_ptr<ROS2Subscriber> sub = make_shared<ROS2Subscriber>(node, sys, pub);
 
   // Ensure we read in all parameters required
   if (!parser->successful()) {

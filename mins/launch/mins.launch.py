@@ -1,4 +1,4 @@
-"""ros2 launch mins mins.launch.py config:=scv [transport:=flux]
+"""ros2 launch mins mins.launch.py config:=scv
 
 The node is named mins, the name its stage in CAPA_SPEC uses.
 """
@@ -15,7 +15,6 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("config"),
-            DeclareLaunchArgument("transport", default_value="dds", choices=["dds", "flux"]),
             Node(
                 package="mins",
                 executable="subscribe",
@@ -26,7 +25,6 @@ def generate_launch_description():
                         "config_path": PathJoinSubstitution(
                             [FindPackageShare("mins"), "config", LaunchConfiguration("config"), "config.yaml"]
                         ),
-                        "transport": LaunchConfiguration("transport"),
                     }
                 ],
             ),

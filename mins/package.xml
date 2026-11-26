@@ -20,7 +20,7 @@
 
     <depend>rclcpp</depend>
     <depend>flux_cpp</depend>
-    <depend>flux_std_adapters</depend>
+    <depend>flux_wrapper</depend>
     <depend>capa_ros</depend>
 
     <depend>std_msgs</depend>

@@ -22,7 +22,6 @@
 #include "update/wheel/WheelTypes.h"
 #include "utils/Print_Logger.h"
 #include <cv_bridge/cv_bridge.hpp>
-#include <opencv2/imgproc.hpp>
 #include <vector>
 
 using namespace sensor_msgs::msg;
@@ -148,52 +147,28 @@ GPSData ROS2Helper::NavSatFix2Data(const sensor_msgs::msg::NavSatFix::ConstShare
   return data;
 }
 
-bool ROS2Helper::Image2Data(const sensor_msgs::msg::Image::ConstSharedPtr msg, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op) {
+bool ROS2Helper::Image2Data(const flux_wrapper::View<sensor_msgs::msg::Image> &img, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op) {
 
   cv_bridge::CvImageConstPtr cv_ptr;
   try {
-    cv_ptr = cv_bridge::toCvShare(msg, image_encodings::MONO8);
+    const std::string encoding(img.encoding());
+    const cv::Mat raw(img.height(), img.width(), cv_bridge::getCvType(encoding), const_cast<uint8_t *>(img.data().data()), img.step());
+    cv_ptr = cv_bridge::cvtColor(std::make_shared<cv_bridge::CvImage>(std_msgs::msg::Header(), encoding, raw), image_encodings::MONO8);
   } catch (cv_bridge::Exception &e) {
     PRINT4("cv_bridge exception: %s", e.what());
     return false;
   }
 
   // Create the measurement
-  cam.timestamp = rclcpp::Time(cv_ptr->header.stamp).seconds();
+  cam.timestamp = rclcpp::Time(img.stamp()).seconds();
   cam.sensor_ids.push_back(cam_id);
-  cam.images.push_back(cv_ptr->image.clone());
+  cam.images.push_back(cv_ptr->image);
 
   // Load the mask if we are using it, else it is empty
   if (op->use_mask.at(cam_id)) {
     cam.masks.push_back(op->masks.at(cam_id));
   } else {
     cam.masks.push_back(cv::Mat::zeros(cv_ptr->image.rows, cv_ptr->image.cols, CV_8UC1));
-  }
-  return true;
-}
-
-bool ROS2Helper::Image2Data(const sensor_msgs::flux_msg::Image::View &img, int cam_id, ov_core::CameraData &cam, shared_ptr<OptionsCamera> op) {
-  const std::string_view encoding = img.encoding();
-  const bool mono = encoding == image_encodings::MONO8;
-  if (!mono && encoding != image_encodings::RGB8 && encoding != image_encodings::BGR8) {
-    PRINT4("flux image: unsupported encoding %.*s\n", static_cast<int>(encoding.size()), encoding.data());
-    return false;
-  }
-  const cv::Mat raw(static_cast<int>(img.height()), static_cast<int>(img.width()), mono ? CV_8UC1 : CV_8UC3,
-                    const_cast<std::uint8_t *>(img.data().data()), img.step());
-  cv::Mat gray;
-  if (mono)
-    gray = raw.clone();
-  else
-    cv::cvtColor(raw, gray, encoding == image_encodings::RGB8 ? cv::COLOR_RGB2GRAY : cv::COLOR_BGR2GRAY);
-
-  cam.timestamp = img.header__sec() + img.header__nanosec() * 1e-9;
-  cam.sensor_ids.push_back(cam_id);
-  cam.images.push_back(gray);
-  if (op->use_mask.at(cam_id)) {
-    cam.masks.push_back(op->masks.at(cam_id));
-  } else {
-    cam.masks.push_back(cv::Mat::zeros(gray.rows, gray.cols, CV_8UC1));
   }
   return true;
 }

@@ -23,9 +23,9 @@ find_package(ament_index_cpp REQUIRED)  # get_package_share_directory()
 find_package(ov_core REQUIRED)   # Might not be available as a ROS 2 package
 find_package(capa_ros REQUIRED)
 find_package(flux_cpp REQUIRED)
-find_package(flux_std_adapters REQUIRED)
+find_package(flux_wrapper REQUIRED)
 
-ament_export_dependencies(rclcpp rosbag2 tf2_ros std_msgs geometry_msgs sensor_msgs nav_msgs std_srvs image_geometry visualization_msgs image_transport cv_bridge ament_index_cpp ov_core flux_cpp flux_std_adapters)
+ament_export_dependencies(rclcpp rosbag2 tf2_ros std_msgs geometry_msgs sensor_msgs nav_msgs std_srvs image_geometry visualization_msgs image_transport cv_bridge ament_index_cpp ov_core flux_wrapper)
 # ament_export_include_directories(src/)
 ament_export_libraries(mins_lib)
 
@@ -107,8 +107,7 @@ list(APPEND LIBRARY_SOURCES
 file(GLOB_RECURSE LIBRARY_HEADERS "src/*.h")
 add_library(mins_lib SHARED ${LIBRARY_SOURCES} ${LIBRARY_HEADERS})
 ament_target_dependencies(mins_lib ${ament_libraries})
-target_link_libraries(mins_lib ${thirdparty_libraries} ${rclcpp_LIBRARIES} flux_cpp::flux_cpp)
-target_include_directories(mins_lib PUBLIC ${flux_std_adapters_INCLUDE_DIRS})
+target_link_libraries(mins_lib ${thirdparty_libraries} ${rclcpp_LIBRARIES} flux_wrapper::flux_wrapper)
 
 # target_include_directories(mins_lib PUBLIC src/)
 
@@ -138,7 +137,7 @@ add_executable(simulation src/run_simulation.cpp)
 target_link_libraries(simulation mins_lib)
 
 add_executable(subscribe src/run_subscribe.cpp)
-target_link_libraries(subscribe mins_lib capa_ros::capa_ros)
+target_link_libraries(subscribe mins_lib capa_ros::capa_ros flux_cpp::flux_cpp)
 
 # Install executables
 install(TARGETS subscribe simulation DESTINATION lib/${PROJECT_NAME})

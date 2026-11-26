@@ -21,8 +21,8 @@
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "std_srvs/srv/empty.hpp"
-#include <flux/subscription.hpp>
-#include <sensor_msgs/flux/image.hpp>
+#include <flux_wrapper/flux_wrapper.hpp>
+#include <flux_wrapper/message_filters.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/time_synchronizer.h>
@@ -36,6 +36,8 @@ template <typename M> std::shared_ptr<message_filters::Subscriber<M>> make_mf_su
   return std::make_shared<message_filters::Subscriber<M>>(node, topic);
 }
 
+using StampedImage = flux_wrapper::message_filters::Stamped<Image>;
+
 class SystemManager;
 struct OptionsEstimator;
 class ROS2Publisher;
@@ -43,8 +45,7 @@ class ROS2Subscriber {
 
 public:
   /// ROS message subscriber
-  /// transport is dds or flux; flux carries monocular raw images, the rest stays on dds
-  ROS2Subscriber(shared_ptr<rclcpp::Node> node, shared_ptr<SystemManager> sys, shared_ptr<ROS2Publisher> pub, const std::string &transport);
+  ROS2Subscriber(shared_ptr<rclcpp::Node> node, shared_ptr<SystemManager> sys, shared_ptr<ROS2Publisher> pub);
 
   /// Callback for IMU
   void callback_inertial(const Imu::SharedPtr msg);
@@ -59,12 +60,11 @@ public:
   void callback_lidar(const PointCloud2::SharedPtr msg, int lidar_id);
 
   /// Callback for monocular camera (image, compressed image)
-  void callback_monocular_I(const Image::ConstSharedPtr msg, int cam_id);
+  void callback_monocular_I(const flux_wrapper::View<Image> &msg, int cam_id);
   void callback_monocular_C(const CompressedImage::ConstSharedPtr msg, int cam_id);
-  void callback_monocular_F(const sensor_msgs::flux_msg::Image::View &img, int cam_id);
 
   /// Callback for synchronized stereo camera (image, compressed image)
-  void callback_stereo_I(const Image::ConstSharedPtr msg0, const Image::ConstSharedPtr msg1, int cam_id0, int cam_id1);
+  void callback_stereo_I(const shared_ptr<const StampedImage> msg0, const shared_ptr<const StampedImage> msg1, int cam_id0, int cam_id1);
   void callback_stereo_C(const CompressedImage::ConstSharedPtr msg0, const CompressedImage::ConstSharedPtr msg1, int cam_id0, int cam_id1);
 
   void reset_service(std::shared_ptr<std_srvs::srv::Empty::Request> request, std::shared_ptr<std_srvs::srv::Empty::Response> response);
@@ -87,16 +87,15 @@ private:
   rclcpp::Subscription<JointState>::SharedPtr sub_wheel;
 
   vector<rclcpp::SubscriptionBase::SharedPtr> subs;
-  vector<std::shared_ptr<message_filters::Subscriber<Image>>> image_subs;
+  vector<std::shared_ptr<flux_wrapper::Subscription<Image>>> image_subs;
+  vector<std::shared_ptr<flux_wrapper::message_filters::Subscriber<Image>>> sync_image_subs;
   vector<std::shared_ptr<message_filters::Subscriber<CompressedImage>>> cimage_subs;
 
-  typedef message_filters::sync_policies::ApproximateTime<Image, Image> sync_pol;
+  typedef message_filters::sync_policies::ApproximateTime<StampedImage, StampedImage> sync_pol;
   vector<shared_ptr<message_filters::Synchronizer<sync_pol>>> sync_cam;
 
   typedef message_filters::sync_policies::ApproximateTime<CompressedImage, CompressedImage> csync_pol;
   vector<shared_ptr<message_filters::Synchronizer<csync_pol>>> csync_cam;
-
-  vector<shared_ptr<flux::Subscription>> flux_subs;
 
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reset_srv;
 };

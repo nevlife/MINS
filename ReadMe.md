@@ -27,7 +27,7 @@ Exemplary use case of MINS:
 
 ## Dependency
 This branch builds only on ROS 2 Jazzy (Ubuntu 24.04). `Dockerfile_jazzy_24_04` lists the dependencies.
-`subscribe` also needs flux (`flux_cpp`, `flux_std_adapters`) and capa (`capa_ros`).
+`subscribe` also needs flux (`flux_cpp`, `flux_wrapper`) and capa (`capa_ros`).
 
 ## Build and Source
 ```sh
@@ -51,7 +51,7 @@ ros2 bag play data/MH_01_easy
 ```
 
 Convert ROS 1 bags such as [euroc_mav](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) with [rosbags](https://pypi.org/project/rosbags/) first.
-`transport:=flux` takes the monocular raw image from flux instead of DDS.
+Raw images come through `flux_wrapper`: from flux when the process has `ENABLE_FLUX=1`, else from DDS, so run MINS without `ENABLE_FLUX` to read a bag played over DDS. Compressed images, IMU, wheel, GNSS and LiDAR stay on DDS.
 The node runs on a flux executor with one thread, and when `CAPA_SPEC` names a chain file, capa schedules that thread by the stage of node `/mins`.
 
 ![alt text](thirdparty/real_sub.png)
